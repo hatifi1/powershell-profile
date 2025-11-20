@@ -432,9 +432,19 @@ function tail {
 }
 
 function ss {
+    # KEIN param-Block! Das verhindert, dass PowerShell versucht, 
+    # Flags wie -t oder -L selbst zu interpretieren.
+    
+    # 1. Argumente manuell verteilen
+    # Das erste Argument ist immer das Ziel (z.B. "10" oder "imx93")
     $Target = if ($args.Count -gt 0) { $args[0] } else { $null }
-    $tioArgs = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
 
+    # Alles danach sind Optionen für TIO.
+    # Wir nutzen @(...), um sicherzustellen, dass es IMMER ein Array ist.
+    # Das verhindert den "t i m e s t a m p" Fehler.
+    $TioOptions = @($args | Select-Object -Skip 1)
+
+    # --- PnP Scan ---
     $pnpDevices = Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.Name -match '\(COM\d+\)' }
     $portList = foreach ($dev in $pnpDevices) {
         if ($dev.Name -match '\((COM\d+)\)') {
@@ -445,6 +455,7 @@ function ss {
         }
     }
 
+    # --- Keine Eingabe? Liste zeigen ---
     if ([string]::IsNullOrWhiteSpace($Target)) {
         Write-Host "Available COM ports:" -ForegroundColor Yellow
         if ($portList) {
@@ -455,42 +466,40 @@ function ss {
         return
     }
 
+    # --- LOGIK ---
     if ($Target -match "^\d+$" -or $Target -match "^COM\d+$") {
-        if ($Target -match "^\d+$") {
-            $Target = "COM$Target"
-        }
+        
+        # Normalisieren "10" -> "COM10"
+        if ($Target -match "^\d+$") { $Target = "COM$Target" }
 
         $found = $portList | Where-Object { $_.PortName -eq $Target }
 
         if ($found) {
-            # Use plain COM name; the Windows build of tio handles COM10+ without the \\.\ prefix
             $realPort = $Target
             Write-Host "Connecting to $realPort via tio" -ForegroundColor Cyan
             Write-Host "Device: $($found.Description)" -ForegroundColor DarkGray
-            # Put user args before the device so options like -t are parsed correctly
-            tio.exe -b 115200 @tioArgs $realPort
+            
+            if ($TioOptions) {
+                Write-Host "Options: $TioOptions" -ForegroundColor Gray
+            }
+
+            # Startet Tio mit den gesammelten Optionen
+            tio.exe -b 115200 @TioOptions $realPort
+
         } else {
-            Write-Host "Port '$Target' was not found." -ForegroundColor Red
-            Write-Host ""
-            Write-Host "Ports detected:" -ForegroundColor Yellow
+            Write-Host "❌ Port '$Target' not found." -ForegroundColor Red
+            Write-Host "Available:" -ForegroundColor Yellow
             if ($portList) {
                 foreach ($p in $portList) {
                     Write-Host "  $($p.PortName) " -NoNewline -ForegroundColor Green
-                    Write-Host "-> $($p.Description)" -ForegroundColor Gray
-                }
-            } else {
-                $netPorts = [System.IO.Ports.SerialPort]::GetPortNames()
-                if ($netPorts) {
-                    Write-Host "  No PnP information, but .NET sees the following ports:" -ForegroundColor Magenta
-                    $netPorts | ForEach-Object { Write-Host "  $_" -ForegroundColor Magenta }
-                } else {
-                    Write-Host "  (No ports detected)" -ForegroundColor DarkGray
+                    Write-Host "➜ $($p.Description)" -ForegroundColor Gray
                 }
             }
         }
     } else {
+        # Session Modus
         Write-Host "Opening tio session '$Target'..." -ForegroundColor Green
-        tio.exe @tioArgs $Target
+        tio.exe @TioOptions $Target
     }
 }
 
