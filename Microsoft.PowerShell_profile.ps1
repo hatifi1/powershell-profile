@@ -463,7 +463,8 @@ function ss {
         $found = $portList | Where-Object { $_.PortName -eq $Target }
 
         if ($found) {
-            $realPort = "\\.\$Target"
+            # Use plain COM name; the Windows build of tio handles COM10+ without the \\.\ prefix
+            $realPort = $Target
             Write-Host "Connecting to $realPort via tio" -ForegroundColor Cyan
             Write-Host "Device: $($found.Description)" -ForegroundColor DarkGray
             # Put user args before the device so options like -t are parsed correctly
