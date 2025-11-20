@@ -466,7 +466,8 @@ function ss {
             $realPort = "\\.\$Target"
             Write-Host "Connecting to $realPort via tio" -ForegroundColor Cyan
             Write-Host "Device: $($found.Description)" -ForegroundColor DarkGray
-            tio.exe -b 115200 $realPort @tioArgs
+            # Put user args before the device so options like -t are parsed correctly
+            tio.exe -b 115200 @tioArgs $realPort
         } else {
             Write-Host "Port '$Target' was not found." -ForegroundColor Red
             Write-Host ""
@@ -488,7 +489,7 @@ function ss {
         }
     } else {
         Write-Host "Opening tio session '$Target'..." -ForegroundColor Green
-        tio.exe $Target @tioArgs
+        tio.exe @tioArgs $Target
     }
 }
 
