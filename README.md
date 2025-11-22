@@ -55,6 +55,7 @@ $repo_root_Override  [To point to a fork, for example]
 $timeFilePath_Override
 $updateInterval_Override
 </pre>
+> Tip: `$updateInterval_Override` now controls *all* maintenance work (connectivity checks, module installs, update checks). Set it to a higher value to reduce startup pauses, or to `-1` to force maintenance every launch.
 
 THE FOLLOWING FUNCTIONS RESPECT _Override: _(do not call the original function from your override function, or you'll create an infinite loop)_
 <pre>

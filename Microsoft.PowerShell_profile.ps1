@@ -108,15 +108,53 @@ if ([bool]([System.Security.Principal.WindowsIdentity]::GetCurrent()).IsSystem) 
     [System.Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', 'true', [System.EnvironmentVariableTarget]::Machine)
 }
 
-# Initial GitHub.com connectivity check with 1 second timeout
-$global:canConnectToGitHub = Test-Connection github.com -Count 1 -Quiet -TimeoutSeconds 1
+# Determine if maintenance tasks (updates, installs, connectivity checks) should run
+function Test-MaintenanceDue {
+    param(
+        [int]$Interval,
+        [string]$TimestampPath
+    )
+
+    if ($debug) {
+        Write-Warning "Skipping automatic maintenance in debug mode"
+        return $false
+    }
+
+    if ($Interval -eq -1) {
+        return $true
+    }
+
+    if (-not (Test-Path $TimestampPath)) {
+        return $true
+    }
+
+    try {
+        $last = [datetime]::ParseExact((Get-Content -Path $TimestampPath), 'yyyy-MM-dd', $null)
+    } catch {
+        return $true
+    }
+    return ((Get-Date).Date - $last.Date).TotalDays -gt $Interval
+}
+
+$global:MaintenanceDue = Test-MaintenanceDue -Interval $updateInterval -TimestampPath $timeFilePath
+
+if ($global:MaintenanceDue) {
+    # Initial GitHub.com connectivity check with 1 second timeout
+    $global:canConnectToGitHub = Test-Connection github.com -Count 1 -Quiet -TimeoutSeconds 1
+} else {
+    $global:canConnectToGitHub = $false
+}
 
 # Import Modules and External Profiles
-# Ensure Terminal-Icons module is installed before importing
+# Attempt to install Terminal-Icons only during maintenance windows to avoid slow startups
 if (-not (Get-Module -ListAvailable -Name Terminal-Icons)) {
-    Install-Module -Name Terminal-Icons -Scope CurrentUser -Force -SkipPublisherCheck
+    if ($global:MaintenanceDue) {
+        Install-Module -Name Terminal-Icons -Scope CurrentUser -Force -SkipPublisherCheck
+    } else {
+        Write-Verbose "Terminal-Icons not installed. Run Update-Profile or set updateInterval to trigger maintenance."
+    }
 }
-Import-Module -Name Terminal-Icons
+Import-Module -Name Terminal-Icons -ErrorAction SilentlyContinue
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
 if (Test-Path($ChocolateyProfile)) {
     Import-Module "$ChocolateyProfile"
@@ -146,20 +184,6 @@ function Update-Profile {
             Remove-Item "$env:temp/Microsoft.PowerShell_profile.ps1" -ErrorAction SilentlyContinue
         }
     }
-}
-
-# Check if not in debug mode AND (updateInterval is -1 OR file doesn't exist OR time difference is greater than the update interval)
-if (-not $debug -and `
-    ($updateInterval -eq -1 -or `
-      -not (Test-Path $timeFilePath) -or `
-      ((Get-Date) - [datetime]::ParseExact((Get-Content -Path $timeFilePath), 'yyyy-MM-dd', $null)).TotalDays -gt $updateInterval)) {
-
-    Update-Profile
-    $currentTime = Get-Date -Format 'yyyy-MM-dd'
-    $currentTime | Out-File -FilePath $timeFilePath
-
-} elseif ($debug) {
-    Write-Warning "Skipping profile update check in debug mode"
 }
 
 function Update-PowerShell {
@@ -192,18 +216,11 @@ function Update-PowerShell {
     }
 }
 
-# skip in debug mode
-# Check if not in debug mode AND (updateInterval is -1 OR file doesn't exist OR time difference is greater than the update interval)
-if (-not $debug -and `
-    ($updateInterval -eq -1 -or `
-     -not (Test-Path $timeFilePath) -or `
-     ((Get-Date).Date - [datetime]::ParseExact((Get-Content -Path $timeFilePath), 'yyyy-MM-dd', $null).Date).TotalDays -gt $updateInterval)) {
-
+if ($global:MaintenanceDue) {
+    Update-Profile
     Update-PowerShell
     $currentTime = Get-Date -Format 'yyyy-MM-dd'
     $currentTime | Out-File -FilePath $timeFilePath
-} elseif ($debug) {
-    Write-Warning "Skipping PowerShell update in debug mode"
 }
 
 function Clear-Cache {
