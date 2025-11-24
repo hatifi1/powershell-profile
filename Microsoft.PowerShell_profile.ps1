@@ -44,6 +44,12 @@ $updateInterval = 7
 ### PowerShell Profile Refactor
 ### Version 1.04 - Refactored
 
+# Load local overrides if they exist
+$CustomProfile = Join-Path (Split-Path $PROFILE) "Profile.ps1"
+if (Test-Path $CustomProfile) {
+    . $CustomProfile
+}
+
 if ($debug_Override){
     # If variable debug_Override is defined in profile.ps1 file
     # then use it instead
@@ -101,6 +107,7 @@ function Debug-Message{
 if ($debug) {
     Debug-Message
 }
+
 
 
 #opt-out of telemetry before doing anything, only if PowerShell is run as admin
@@ -700,17 +707,44 @@ Register-ArgumentCompleter -Native -CommandName dotnet -ScriptBlock $scriptblock
 if (Get-Command -Name "Get-Theme_Override" -ErrorAction SilentlyContinue){
     Get-Theme_Override;
 } else {
-    oh-my-posh init pwsh --config https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/cobalt2.omp.json | Invoke-Expression
+    $ThemePath = "$env:USERPROFILE\Documents\PowerShell\cobalt2.omp.json"
+    $OmpCache = "$env:TEMP\omp_init.ps1"
+    
+    # Regenerate cache if maintenance is due or cache is missing
+    if ($global:MaintenanceDue -or (-not (Test-Path $OmpCache))) {
+        if (-not (Test-Path $ThemePath)) {
+            $ThemeUrl = "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/cobalt2.omp.json"
+            Invoke-RestMethod $ThemeUrl -OutFile $ThemePath
+        }
+        # Generate init script and save to cache
+        oh-my-posh init pwsh --config $ThemePath | Out-File $OmpCache -Encoding utf8 -Force
+    }
+    
+    # Source the cached init script
+    if (Test-Path $OmpCache) {
+        . $OmpCache
+    }
 }
 
 if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { (zoxide init --cmd z powershell | Out-String) })
+    $ZoxideCache = "$env:TEMP\zoxide_init.ps1"
+    
+    # Regenerate cache if maintenance is due or cache is missing
+    if ($global:MaintenanceDue -or (-not (Test-Path $ZoxideCache))) {
+        zoxide init --cmd z powershell | Out-File $ZoxideCache -Encoding utf8 -Force
+    }
+    
+    if (Test-Path $ZoxideCache) {
+        . $ZoxideCache
+    }
 } else {
     Write-Host "zoxide command not found. Attempting to install via winget..."
     try {
         winget install -e --id ajeetdsouza.zoxide
         Write-Host "zoxide installed successfully. Initializing..."
-        Invoke-Expression (& { (zoxide init --cmd z powershell | Out-String) })
+        $ZoxideCache = "$env:TEMP\zoxide_init.ps1"
+        zoxide init --cmd z powershell | Out-File $ZoxideCache -Encoding utf8 -Force
+        . $ZoxideCache
     } catch {
         Write-Error "Failed to install zoxide. Error: $_"
     }
