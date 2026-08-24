@@ -67,6 +67,20 @@ function libra {
 	& $pythonPath $scriptPath @args
 }
 
+function phytec {
+	$arguments = ($args | ForEach-Object {
+		"'" + $_.ToString().Replace("'", "'\\''") + "'"
+	}) -join ' '
+	if ($env:PHYTEC_TOOL_PATH_WSL) {
+		$escapedPath = $env:PHYTEC_TOOL_PATH_WSL.Replace("'", "'\\''")
+		$command = "cd '$escapedPath' && bash flash.sh $arguments"
+	} else {
+		$command = "cd \`$HOME/phytec-flash-tool && bash flash.sh $arguments"
+	}
+
+	& wsl.exe -- bash -lc $command
+}
+
 function ll {
 	Ensure-TerminalIcons
 	Get-ChildItem -Force | Format-Table -AutoSize
@@ -131,6 +145,7 @@ PowerShell Profile Help
 =======================
 ff <name>       Findet Dateien rekursiv.
 libra [options]  Startet Libra FT4232H (z. B. libra -r).
+phytec           Startet phytec-flash-tool in WSL.
 ll              Listet Dateien inklusive versteckter Dateien.
 la              Listet Dateien ohne versteckte Dateien.
 ss              Zeigt COM-Ports.
