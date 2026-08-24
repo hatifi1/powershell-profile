@@ -75,7 +75,7 @@ function phytec {
 		$escapedPath = $env:PHYTEC_TOOL_PATH_WSL.Replace("'", "'\\''")
 		$command = "cd '$escapedPath' && bash flash.sh $arguments"
 	} else {
-		$command = "cd \`$HOME/phytec-flash-tool && bash flash.sh $arguments"
+		$command = "cd /home/groot/git/phytec-flash-tool && bash flash.sh $arguments"
 	}
 
 	& wsl.exe -- bash -lc $command
