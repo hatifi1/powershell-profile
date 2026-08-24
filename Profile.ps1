@@ -37,12 +37,30 @@ function ff($name) {
 }
 
 function libra {
-	$toolPath = "${HOME}\Desktop\Hamza\python\Libra_ft4232h_control"
+	if ($env:LIBRA_TOOL_PATH) {
+		$toolPath = $env:LIBRA_TOOL_PATH
+	} else {
+		$toolPath = @(
+			"${HOME}\Desktop\Hamza\python\Libra_ft4232h_control"
+			"${HOME}\Documents\Libra_ft4232h_control"
+		) | Where-Object { Test-Path $_ -PathType Container } | Select-Object -First 1
+	}
+
+	if (-not $toolPath) {
+		Write-Error "Libra repository not found. Set LIBRA_TOOL_PATH to its folder."
+		return
+	}
+
 	$pythonPath = Join-Path $toolPath ".venv\Scripts\python.exe"
 	$scriptPath = Join-Path $toolPath "ftdi_boot_reset.py"
 
-	if (-not (Test-Path $pythonPath) -or -not (Test-Path $scriptPath)) {
-		Write-Error "Libra tool was not found at $toolPath"
+	if (-not (Test-Path $scriptPath)) {
+		Write-Error "Libra script not found: $scriptPath"
+		return
+	}
+
+	if (-not (Test-Path $pythonPath)) {
+		Write-Error "Libra venv not found: $pythonPath. Run: py -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt"
 		return
 	}
 
