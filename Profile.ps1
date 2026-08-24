@@ -144,8 +144,8 @@ function Show-Help {
 PowerShell Profile Help
 =======================
 ff <name>       Findet Dateien rekursiv.
-	libra-control    Steuert Libra Boot-Modus und Reset.
-	flash-phytec     Startet phytec-flash-tool in WSL.
+libra-control    Steuert Libra Boot-Modus und Reset.
+flash-phytec     Startet phytec-flash-tool in WSL.
 ll              Listet Dateien inklusive versteckter Dateien.
 la              Listet Dateien ohne versteckte Dateien.
 ss              Zeigt COM-Ports.
