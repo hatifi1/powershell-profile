@@ -36,6 +36,19 @@ function ff($name) {
 		ForEach-Object { $_.FullName }
 }
 
+function libra {
+	$toolPath = "${HOME}\Desktop\Hamza\python\Libra_ft4232h_control"
+	$pythonPath = Join-Path $toolPath ".venv\Scripts\python.exe"
+	$scriptPath = Join-Path $toolPath "ftdi_boot_reset.py"
+
+	if (-not (Test-Path $pythonPath) -or -not (Test-Path $scriptPath)) {
+		Write-Error "Libra tool was not found at $toolPath"
+		return
+	}
+
+	& $pythonPath $scriptPath @args
+}
+
 function ll {
 	Ensure-TerminalIcons
 	Get-ChildItem -Force | Format-Table -AutoSize
@@ -99,6 +112,7 @@ function Show-Help {
 PowerShell Profile Help
 =======================
 ff <name>       Findet Dateien rekursiv.
+libra [options]  Startet Libra FT4232H (z. B. libra -r).
 ll              Listet Dateien inklusive versteckter Dateien.
 la              Listet Dateien ohne versteckte Dateien.
 ss              Zeigt COM-Ports.
