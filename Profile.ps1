@@ -36,7 +36,7 @@ function ff($name) {
 		ForEach-Object { $_.FullName }
 }
 
-function libra {
+function libra-control {
 	if ($env:LIBRA_TOOL_PATH) {
 		$toolPath = $env:LIBRA_TOOL_PATH
 	} else {
@@ -67,7 +67,7 @@ function libra {
 	& $pythonPath $scriptPath @args
 }
 
-function phytec {
+function flash-phytec {
 	$arguments = ($args | ForEach-Object {
 		"'" + $_.ToString().Replace("'", "'\\''") + "'"
 	}) -join ' '
@@ -144,8 +144,8 @@ function Show-Help {
 PowerShell Profile Help
 =======================
 ff <name>       Findet Dateien rekursiv.
-libra [options]  Startet Libra FT4232H (z. B. libra -r).
-phytec           Startet phytec-flash-tool in WSL.
+	libra-control    Steuert Libra Boot-Modus und Reset.
+	flash-phytec     Startet phytec-flash-tool in WSL.
 ll              Listet Dateien inklusive versteckter Dateien.
 la              Listet Dateien ohne versteckte Dateien.
 ss              Zeigt COM-Ports.
