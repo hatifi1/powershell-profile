@@ -36,9 +36,9 @@ function ff($name) {
 		ForEach-Object { $_.FullName }
 }
 
-function libra-control {
-	if ($env:LIBRA_TOOL_PATH) {
-		$toolPath = $env:LIBRA_TOOL_PATH
+function board-control {
+	if ($env:BOARD_TOOL_PATH) {
+		$toolPath = $env:BOARD_TOOL_PATH
 	} else {
 		$toolPath = @(
 			"${HOME}\Desktop\Hamza\python\Libra_ft4232h_control"
@@ -47,20 +47,20 @@ function libra-control {
 	}
 
 	if (-not $toolPath) {
-		Write-Error "Libra repository not found. Set LIBRA_TOOL_PATH to its folder."
+		Write-Error "Board repository not found. Set BOARD_TOOL_PATH to its folder."
 		return
 	}
 
 	$pythonPath = Join-Path $toolPath ".venv\Scripts\python.exe"
-	$scriptPath = Join-Path $toolPath "ftdi_boot_reset.py"
+	$scriptPath = Join-Path $toolPath "ftdi_boot_control.py"
 
 	if (-not (Test-Path $scriptPath)) {
-		Write-Error "Libra script not found: $scriptPath"
+		Write-Error "Board script not found: $scriptPath"
 		return
 	}
 
 	if (-not (Test-Path $pythonPath)) {
-		Write-Error "Libra venv not found: $pythonPath. Run: py -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt"
+		Write-Error "Board venv not found: $pythonPath. Run: py -m venv .venv; .\.venv\Scripts\python.exe -m pip install -r requirements.txt"
 		return
 	}
 
@@ -144,7 +144,7 @@ function Show-Help {
 PowerShell Profile Help
 =======================
 ff <name>       Findet Dateien rekursiv.
-libra-control    Steuert Libra Boot-Modus und Reset.
+board-control    Steuert Board Boot-Modus und Reset (Libra/Nash).
 flash-phytec     Startet phytec-flash-tool in WSL.
 ll              Listet Dateien inklusive versteckter Dateien.
 la              Listet Dateien ohne versteckte Dateien.
